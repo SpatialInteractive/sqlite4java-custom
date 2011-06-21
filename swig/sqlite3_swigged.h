@@ -97,6 +97,8 @@ int sqlite3_blob_close(sqlite3_blob *);
 int sqlite3_blob_bytes(sqlite3_blob *);
 int sqlite3_stmt_readonly(sqlite3_stmt *);
 int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
+int sqlite3_load_extension(sqlite3 *, const char*, const char*, char**);
+int sqlite3_enable_load_extension(sqlite3 *, int);
 
 /*
 ** ******************************************************************

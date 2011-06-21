@@ -388,6 +388,29 @@ public final class SQLiteConnection {
     myConfinement = null;
   }
 
+    /**
+   * Enables/disables sqlite extension loading via sql load_extension function
+   * @param en enable/disable
+   */
+  public void enableLoadExtension(boolean en) throws SQLiteException {
+    checkThread();
+    SWIGTYPE_p_sqlite3 handle = handle();
+    int rc=_SQLiteSwiggedJNI.sqlite3_enable_load_extension(SWIGTYPE_p_sqlite3.getCPtr(handle), en ? 1: 0);
+    throwResult(rc, "enableLoadExtension()", null);
+  }
+  
+  /**
+   * Loads an extension via the native api (as opposed to SQL).
+   * @param file library
+   * @param entryPoint entry point function (typically null)
+   */
+  public void loadExtension(String file, String entryPoint) throws SQLiteException {
+  	  checkThread();
+  	  SWIGTYPE_p_sqlite3 handle = handle();
+  	  int rc=_SQLiteSwiggedJNI.sqlite3_load_extension(SWIGTYPE_p_sqlite3.getCPtr(handle), file, entryPoint, 0);
+  	  throwResult(rc, "loadExtension()", null);
+  }
+  
   /**
    * Executes SQL. This method is normally used for DDL, transaction control and similar SQL statements.
    * For querying database and for DML statements with parameters, use {@link #prepare}.
