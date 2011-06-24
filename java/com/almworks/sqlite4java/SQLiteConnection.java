@@ -72,11 +72,6 @@ public final class SQLiteConnection {
   private final Object myLock = new Object();
 
   /**
-   * Confinement thread, set on open() call, cleared on dispose().
-   */
-  private volatile Thread myConfinement;
-
-  /**
    * SQLite db handle.
    */
   private SWIGTYPE_p_sqlite3 myHandle;
@@ -356,11 +351,6 @@ public final class SQLiteConnection {
     synchronized (myLock) {
       if (myDisposed)
         return;
-      Thread confinement = myConfinement;
-      if (confinement != null && confinement != Thread.currentThread()) {
-        Internal.recoverableError(this, "will not dispose from a non-confining thread", true);
-        return;
-      }
       myDisposed = true;
       handle = myHandle;
       myHandle = null;
@@ -385,7 +375,6 @@ public final class SQLiteConnection {
       Internal.logWarn(this, "close error " + rc + (errmsg == null ? "" : ": " + errmsg));
     }
     Internal.logInfo(this, "connection closed");
-    myConfinement = null;
   }
 
     /**
@@ -393,7 +382,6 @@ public final class SQLiteConnection {
    * @param en enable/disable
    */
   public void enableLoadExtension(boolean en) throws SQLiteException {
-    checkThread();
     SWIGTYPE_p_sqlite3 handle = handle();
     int rc=_SQLiteSwiggedJNI.sqlite3_enable_load_extension(SWIGTYPE_p_sqlite3.getCPtr(handle), en ? 1: 0);
     throwResult(rc, "enableLoadExtension()", null);
@@ -405,7 +393,6 @@ public final class SQLiteConnection {
    * @param entryPoint entry point function (typically null)
    */
   public void loadExtension(String file, String entryPoint) throws SQLiteException {
-  	  checkThread();
   	  SWIGTYPE_p_sqlite3 handle = handle();
   	  int rc=_SQLiteSwiggedJNI.sqlite3_load_extension(SWIGTYPE_p_sqlite3.getCPtr(handle), file, entryPoint, 0);
   	  throwResult(rc, "loadExtension()", null);
@@ -426,7 +413,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/exec.html">sqlite3_exec</a>
    */
   public SQLiteConnection exec(String sql) throws SQLiteException {
-    checkThread();
     SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "exec [" + sql + "]");
@@ -469,7 +455,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/prepare.html">sqlite3_prepare_v2</a>
    */
   public SQLiteStatement prepare(SQLParts sql, boolean cached) throws SQLiteException {
-    checkThread();
     SQLiteProfiler profiler = myProfiler;
     if (Internal.isFineLogging())
       Internal.logFine(this, "prepare [" + sql + "]");
@@ -593,7 +578,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/blob_open.html">sqlite3_blob_open</a>
    */
   public SQLiteBlob blob(String dbname, String table, String column, long rowid, boolean writeAccess) throws SQLiteException {
-    checkThread();
     if (Internal.isFineLogging())
       Internal.logFine(this, "openBlob [" + dbname + "," + table + "," + column + "," + rowid + "," + writeAccess + "]");
     SWIGTYPE_p_sqlite3 handle = handle();
@@ -651,7 +635,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/busy_timeout.html">sqlite3_busy_timeout</a>
    */
   public SQLiteConnection setBusyTimeout(long millis) throws SQLiteException {
-    checkThread();
     int rc = _SQLiteSwigged.sqlite3_busy_timeout(handle(), (int) millis);
     throwResult(rc, "setBusyTimeout");
     return this;
@@ -667,7 +650,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/get_autocommit.html">sqlite3_get_autocommit</a>
    */
   public boolean getAutoCommit() throws SQLiteException {
-    checkThread();
     int r = _SQLiteSwigged.sqlite3_get_autocommit(handle());
     return r != 0;
   }
@@ -683,7 +665,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/last_insert_rowid.html">sqlite3_last_insert_rowid</a>
    */
   public long getLastInsertId() throws SQLiteException {
-    checkThread();
     long id = _SQLiteSwigged.sqlite3_last_insert_rowid(handle());
     return id;
   }
@@ -697,7 +678,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/changes.html">sqlite3_changes</a>
    */
   public int getChanges() throws SQLiteException {
-    checkThread();
     return _SQLiteSwigged.sqlite3_changes(handle());
   }
 
@@ -710,7 +690,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/total_changes.html">sqlite3_total_changes</a>
    */
   public int getTotalChanges() throws SQLiteException {
-    checkThread();
     return _SQLiteSwigged.sqlite3_total_changes(handle());
   }
 
@@ -739,7 +718,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/errcode.html">sqlite3_extended_errcode</a>
    */
   public int getErrorCode() throws SQLiteException {
-    checkThread();
     return _SQLiteSwigged.sqlite3_errcode(handle());
   }
 
@@ -751,7 +729,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/c3ref/errcode.html">sqlite3_errmsg</a>
    */
   public String getErrorMessage() throws SQLiteException {
-    checkThread();
     return _SQLiteSwigged.sqlite3_errmsg(handle());
   }
 
@@ -835,7 +812,6 @@ public final class SQLiteConnection {
    * @see <a href="http://www.sqlite.org/src/artifact/489edb9068bb926583445cb02589344961054207">test_intarray.h</a>
    */
   public SQLiteLongArray createArray(String name, boolean cached) throws SQLiteException {
-    checkThread();
     if (Internal.isFineLogging())
       Internal.logFine(this, "createArray [" + name + "," + cached + "]");
     if (!cached && name != null && myLongArrays.containsKey(name)) {
@@ -910,11 +886,9 @@ public final class SQLiteConnection {
   }
 
   private void finalizeProgressHandler(SWIGTYPE_p_sqlite3 handle) {
-    if (Thread.currentThread() == myConfinement) {
-      ProgressHandler handler = myProgressHandler;
-      if (handler != null) {
-        _SQLiteManual.uninstall_progress_handler(handle, handler);
-      }
+    ProgressHandler handler = myProgressHandler;
+    if (handler != null) {
+      _SQLiteManual.uninstall_progress_handler(handle, handler);
     }
   }
 
@@ -928,12 +902,8 @@ public final class SQLiteConnection {
       myBuffers.clear();
       myBuffersTotalSize = 0;
     }
-    if (Thread.currentThread() == myConfinement) {
-      for (DirectBuffer buffer : buffers) {
-        _SQLiteManual.wrapper_free(buffer);
-      }
-    } else {
-      Internal.logWarn(this, "cannot free " + buffers.length + " buffers from alien thread (" + Thread.currentThread() + ")");
+    for (DirectBuffer buffer : buffers) {
+      _SQLiteManual.wrapper_free(buffer);
     }
   }
 
@@ -951,41 +921,34 @@ public final class SQLiteConnection {
   }
 
   private void finalizeStatements() {
-    boolean alienThread = myConfinement != Thread.currentThread();
-    if (!alienThread) {
-      Internal.logFine(this, "finalizing statements");
-      while (true) {
-        SQLiteStatement[] statements = null;
-        synchronized (myLock) {
-          if (myStatements.isEmpty())
-            break;
-          statements = myStatements.toArray(new SQLiteStatement[myStatements.size()]);
-        }
-        for (SQLiteStatement statement : statements) {
-          finalizeStatement(statement);
-        }
+    Internal.logFine(this, "finalizing statements");
+    while (true) {
+      SQLiteStatement[] statements = null;
+      synchronized (myLock) {
+        if (myStatements.isEmpty())
+          break;
+        statements = myStatements.toArray(new SQLiteStatement[myStatements.size()]);
       }
-      while (true) {
-        SWIGTYPE_p_sqlite3_stmt stmt = null;
-        SQLParts sql = null;
-        synchronized (myLock) {
-          if (myStatementCache.isEmpty())
-            break;
-          Map.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
-          sql = e.getKey();
-          stmt = e.getValue();
-        }
-        finalizeStatement(stmt, sql);
+      for (SQLiteStatement statement : statements) {
+        finalizeStatement(statement);
       }
+    }
+    while (true) {
+      SWIGTYPE_p_sqlite3_stmt stmt = null;
+      SQLParts sql = null;
+      synchronized (myLock) {
+        if (myStatementCache.isEmpty())
+          break;
+        Map.Entry<SQLParts, SWIGTYPE_p_sqlite3_stmt> e = myStatementCache.entrySet().iterator().next();
+        sql = e.getKey();
+        stmt = e.getValue();
+      }
+      finalizeStatement(stmt, sql);
     }
     synchronized (myLock) {
       if (!myStatements.isEmpty() || !myStatementCache.isEmpty()) {
         int count = myStatements.size() + myStatementCache.size();
-        if (alienThread) {
-          Internal.logWarn(this, "cannot finalize " + count + " statements from alien thread");
-        } else {
-          Internal.recoverableError(this, count + " statements are not finalized", false);
-        }
+        Internal.recoverableError(this, count + " statements are not finalized", false);
       }
       myStatements.clear();
       myStatementCache.clear();
@@ -993,29 +956,22 @@ public final class SQLiteConnection {
   }
 
   private void finalizeBlobs() {
-    boolean alienThread = myConfinement != Thread.currentThread();
-    if (!alienThread) {
-      Internal.logFine(this, "finalizing blobs");
-      while (true) {
-        SQLiteBlob[] blobs = null;
-        synchronized (myLock) {
-          if (myBlobs.isEmpty())
-            break;
-          blobs = myBlobs.toArray(new SQLiteBlob[myBlobs.size()]);
-        }
-        for (SQLiteBlob blob : blobs) {
-          finalizeBlob(blob);
-        }
+    Internal.logFine(this, "finalizing blobs");
+    while (true) {
+      SQLiteBlob[] blobs = null;
+      synchronized (myLock) {
+        if (myBlobs.isEmpty())
+          break;
+        blobs = myBlobs.toArray(new SQLiteBlob[myBlobs.size()]);
+      }
+      for (SQLiteBlob blob : blobs) {
+        finalizeBlob(blob);
       }
     }
     synchronized (myLock) {
       if (!myBlobs.isEmpty()) {
         int count = myBlobs.size();
-        if (alienThread) {
-          Internal.logWarn(this, "cannot finalize " + count + " blobs from alien thread");
-        } else {
-          Internal.recoverableError(this, count + " blobs are not finalized", false);
-        }
+        Internal.recoverableError(this, count + " blobs are not finalized", false);
       }
       myBlobs.clear();
     }
@@ -1225,13 +1181,6 @@ public final class SQLiteConnection {
       if (myDisposed) {
         throw new SQLiteException(WRAPPER_MISUSE, "cannot reopen closed connection");
       }
-      if (myConfinement == null) {
-        myConfinement = Thread.currentThread();
-        if (Internal.isFineLogging())
-          Internal.logFine(this, "confined to " + myConfinement);
-      } else {
-        checkThread();
-      }
       handle = myHandle;
     }
     if (handle != null) {
@@ -1286,17 +1235,6 @@ public final class SQLiteConnection {
     }
   }
 
-  void checkThread() throws SQLiteException {
-    Thread confinement = myConfinement;
-    if (confinement == null) {
-      throw new SQLiteException(WRAPPER_CONFINEMENT_VIOLATED, this + " is not confined");
-    }
-    Thread thread = Thread.currentThread();
-    if (thread != confinement) {
-      String message = this + " confined(" + confinement + ") used (" + thread + ")";
-      throw new SQLiteException(WRAPPER_CONFINEMENT_VIOLATED, message);
-    }
-  }
 
   public String toString() {
     return "DB[" + myNumber + "]";
@@ -1319,7 +1257,6 @@ public final class SQLiteConnection {
   }
 
   private void freeBuffer(DirectBuffer buffer) throws SQLiteException {
-    checkThread();
     boolean cached;
     synchronized (myLock) {
       cached = myBuffers.indexOf(buffer) >= 0;
@@ -1334,7 +1271,6 @@ public final class SQLiteConnection {
   }
 
   private DirectBuffer allocateBuffer(int minimumSize) throws SQLiteException, IOException {
-    checkThread();
     handle();
     int size = 1024;
     while (size < minimumSize + DirectBuffer.CONTROL_BYTES)
@@ -1459,7 +1395,6 @@ public final class SQLiteConnection {
     }
 
     private boolean validateImpl() throws SQLiteException {
-      SQLiteConnection.this.checkThread();
       SQLiteConnection.this.handle();
       return true;
     }
@@ -1475,12 +1410,6 @@ public final class SQLiteConnection {
     }
 
     protected boolean checkDispose(Object object) {
-      try {
-        SQLiteConnection.this.checkThread();
-      } catch (SQLiteException e) {
-        Internal.recoverableError(this, "disposing " + object + " from alien thread", true);
-        return false;
-      }
       return true;
     }
 

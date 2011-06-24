@@ -25,6 +25,10 @@ The key is to call the enableLoadExtension method on the database to enable the 
 or
 
 	db.loadExtension("libspatialite.dylib", null);
+
+Thread Confinement
+------------------
+The original version used "thread confinement" reminiscent of Microsoft's old COM apartment threaded model.  Connections could only be used from threads that created them.  We're all adults here.  I took this out.  I may add use of sqlite mutexes around Java critical sections in the future.  SQLite is thread safe and the wrapper should be too.  I'll probably also remove the statement cache.  I want a direct mapping to the sqlite api and no extra stuff going on.
 	
 Building
 --------
