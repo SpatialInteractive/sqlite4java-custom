@@ -1,0 +1,15 @@
+include common.mk
+
+SONAME=libsqlite4java-linux-custom.so
+
+build/dist/$(SONAME): $(SOURCES)
+	$(CC) \
+	$(CFLAGS) \
+	-fPIC \
+	$(shell $(JAVA_CMD) -jar java-config.jar --cflags) \
+	$(SQLITE_CFLAGS) \
+	-o $@ \
+	-shared \
+	$^
+	
+
