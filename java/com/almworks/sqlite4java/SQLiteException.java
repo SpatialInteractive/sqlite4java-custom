@@ -25,7 +25,7 @@ package com.almworks.sqlite4java;
  *
  * @author Igor Sereda
  */
-public class SQLiteException extends Exception {
+public class SQLiteException extends RuntimeException {
   private final int myErrorCode;
 
   /**
