@@ -50,11 +50,14 @@
 		</condition>
 	</target>
 	<target name="native-build" if="platform.makefile">
+		<property name="make.args" value=""/>
 		<mkdir dir="build/dist"/>
-		<echo>Building native library with makefile ${platform.makefile}</echo>
+		<echo>Building native library with makefile ${platform.makefile} and arguments ${make.args}</echo>
 		<exec executable="make" failonerror="true">
 			<arg value="-f"/>
 			<arg value="${platform.makefile}"/>
+			<arg value="all"/>
+			<arg line="${make.args}"/>
 		</exec>
 	</target>
 	<target name="native" depends="native-init,native-build"/>

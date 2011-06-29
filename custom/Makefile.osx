@@ -1,16 +1,12 @@
+all: build/dist/libsqlite4java-osx-custom.jnilib
+
 include common.mk
 
-SONAME=libsqlite4java-osx-custom.jnilib
-
-build/dist/$(SONAME): $(SOURCES)
-		$(CC) \
-		$(CFLAGS) \
-		$(shell $(JAVA_CMD) -jar java-config.jar --cflags) \
-		$(SQLITE_CFLAGS) \
+build/dist/libsqlite4java-osx-custom.jnilib: $(JNI_SOURCES) $(SQLITE_SOURCES)
+		$(CC) $(CFLAGS) $(JAVA_CFLAGS) $(SQLITE_CFLAGS) \
 		-arch i386 -arch x86_64 -Xarch_i386 -m32 -Xarch_x86_64 -m64 \
 		-mmacosx-version-min=10.5 -DMAC_OS_X_VERSION_MIN_REQUIRED=1050 \
-		-dynamiclib -o $@ \
-		$^ \
+		-dynamiclib -o $@ $^ $(SQLITE_LIBS) \
 		-framework JavaVM
 	
 
