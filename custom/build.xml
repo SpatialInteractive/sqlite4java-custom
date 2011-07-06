@@ -1,24 +1,47 @@
 <project name="sqlite4java-custom" default="all">
 	<target name="sources">
-		<mkdir dir="build/swig"/>
 		<mkdir dir="build/java"/>
 		<copy todir="build/java">
 			<fileset dir="../java"/>
 		</copy>
-		
+		<copy todir="build/java" force="true">
+			<fileset dir="swig/java"/>
+		</copy>
+	</target>
+	
+	<target name="swig" unless="swig.skip">
+		<!-- Drop and recreate swig directory -->
+		<delete dir="swig"/>
+		<mkdir dir="swig/java/com/almworks/sqlite4java"/>
+	
+		<echo>Generating sources with swig (if this step fails it means your sources are out of date and there is a	problem with swig)
+		</echo>
 		<exec executable="swig" failonerror="true">
 			<arg value="-java"/>
 			<arg value="-package"/>
 			<arg value="com.almworks.sqlite4java"/>
 			<arg value="-outdir"/>
-			<arg value="build/java/com/almworks/sqlite4java"/>
+			<arg value="swig/java/com/almworks/sqlite4java"/>
 			<arg value="-o"/>
-			<arg value="build/swig/sqlite_wrap.c"/>
+			<arg value="swig/sqlite_wrap.c"/>
 			<arg value="../swig/sqlite.i"/>
 		</exec>
 	</target>
-
-	<target name="compile" depends="sources">
+	
+	<target name="swig-message" if="swig.skip">
+		<echo>Not rebuilding swig sources because they are up to date</echo>
+		<echo>To force rebuilding run 'ant swig'</echo>
+	</target>
+	
+	<target name="swig-check">
+		<uptodate property="swig.skip" 
+			srcfile="../swig/sqlite.i"
+			targetfile="swig/sqlite_wrap.c"/>
+	</target>
+	
+	<target name="swig-conditional" depends="swig-check,swig-message,swig"/>
+	
+	<target name="compile" depends="swig-conditional,sources">
 		<mkdir dir="build/classes"/>
 		<javac srcdir="build/java" destdir="build/classes" debug="on" source="1.5" target="1.5" includeantruntime="false">
 		</javac>

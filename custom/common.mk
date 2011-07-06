@@ -1,4 +1,4 @@
-JNI_SOURCES := build/swig/sqlite_wrap.c \
+JNI_SOURCES := swig/sqlite_wrap.c \
 		../native/sqlite3_wrap_manual.c \
 		../native/intarray.c
 
