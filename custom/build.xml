@@ -4,7 +4,7 @@
 		<copy todir="build/java">
 			<fileset dir="../java"/>
 		</copy>
-		<copy todir="build/java" force="true">
+		<copy todir="build/java" overwrite="true">
 			<fileset dir="swig/java"/>
 		</copy>
 	</target>
